@@ -9,6 +9,7 @@ use Keboola\OutputMapping\Configuration\File\Manifest\Adapter as FileAdapter;
 use Keboola\OutputMapping\Exception\InvalidOutputException;
 use Keboola\OutputMapping\Writer\Helper\ManifestHelper;
 use Keboola\StorageApi\ClientException;
+use Keboola\StorageApi\DevBranches;
 use Keboola\StorageApi\Options\FileUploadOptions;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Finder\Finder;
@@ -24,6 +25,10 @@ class FileWriter extends AbstractWriter
      */
     public function uploadFiles($source, $configuration = [])
     {
+
+        if (array_key_exists('branchId', $configuration)) {
+            throw new InvalidOutputException('File output mapping is not supported for dev branches', 400);
+        }
 
         $manifestNames = ManifestHelper::getManifestFiles($source);
 

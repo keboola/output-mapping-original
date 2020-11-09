@@ -69,6 +69,10 @@ class TableWriter extends AbstractWriter
      */
     public function uploadTables($source, array $configuration, array $systemMetadata, $stagingStorageOutput)
     {
+        if (array_key_exists('branchId', $configuration)) {
+            throw new InvalidOutputException('Table output mapping is not supported for dev branches', 400);
+        }
+
         if (empty($systemMetadata['componentId'])) {
             throw new OutputOperationException('Component Id must be set');
         }
