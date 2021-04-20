@@ -43,6 +43,9 @@ class TableWriter extends AbstractWriter
     /** @var Metadata */
     private $metadataClient;
 
+    /** @var string */
+    private $stagingStorageOutput;
+
     /** @var Table\StrategyInterface */
     private $strategy;
 
@@ -68,10 +71,14 @@ class TableWriter extends AbstractWriter
         if (empty($systemMetadata[self::SYSTEM_KEY_COMPONENT_ID])) {
             throw new OutputOperationException('Component Id must be set');
         }
+
+        $this->stagingStorageOutput = $stagingStorageOutput;
+        $this->strategy = $this->strategyFactory->getTableOutputStrategy($stagingStorageOutput);
+
         if ($stagingStorageOutput === StrategyFactory::LOCAL) {
-            return $this->uploadTablesLocal($source, $configuration, $systemMetadata, $stagingStorageOutput);
+            return $this->uploadTablesLocal($source, $configuration, $systemMetadata);
         } else {
-            return $this->uploadTablesWorkspace($source, $configuration, $systemMetadata, $stagingStorageOutput);
+            return $this->uploadTablesWorkspace($source, $configuration, $systemMetadata);
         }
     }
 
@@ -79,14 +86,12 @@ class TableWriter extends AbstractWriter
      * @param string $source
      * @param array $configuration
      * @param array $systemMetadata
-     * @param string $stagingStorageOutput
      * @return LoadTableQueue
      * @throws \Exception
      */
-    private function uploadTablesWorkspace($source, array $configuration, array $systemMetadata, $stagingStorageOutput)
+    private function uploadTablesWorkspace($source, array $configuration, array $systemMetadata)
     {
         $this->sourcePath = $source;
-        $this->strategy = $this->strategyFactory->getTableOutputStrategy($stagingStorageOutput);
         $finder = new Finder();
         /** @var SplFileInfo[] $files */
         $files = $finder->files()->name('*.manifest')->in($this->strategy->getMetadataStorage()->getPath() . '/' . $source)->depth(0);
@@ -148,7 +153,7 @@ class TableWriter extends AbstractWriter
                 $parsedConfig['primary_key'] =
                     PrimaryKeyHelper::normalizeKeyArray($this->logger, $parsedConfig['primary_key']);
                 $parsedConfig = DestinationRewriter::rewriteDestination($parsedConfig, $this->clientWrapper);
-                $tableJob = $this->uploadTable($sourceName, $parsedConfig, $systemMetadata, $stagingStorageOutput);
+                $tableJob = $this->uploadTable($sourceName, $parsedConfig, $systemMetadata);
             } catch (ClientException $e) {
                 throw new InvalidOutputException(
                     "Cannot upload file '{$sourceName}' to table '{$parsedConfig["destination"]}' in Storage API: "
@@ -193,13 +198,11 @@ class TableWriter extends AbstractWriter
      * @param string $source
      * @param array $configuration
      * @param array $systemMetadata
-     * @param string $stagingStorageOutput
      * @return LoadTableQueue
      * @throws \Exception
      */
-    private function uploadTablesLocal($source, array $configuration, array $systemMetadata, $stagingStorageOutput)
+    private function uploadTablesLocal($source, array $configuration, array $systemMetadata)
     {
-        $this->strategy = $this->strategyFactory->getTableOutputStrategy($stagingStorageOutput);
         if (empty($systemMetadata[self::SYSTEM_KEY_COMPONENT_ID])) {
             throw new OutputOperationException('Component Id must be set');
         }
@@ -303,7 +306,7 @@ class TableWriter extends AbstractWriter
             try {
                 $config['primary_key'] = PrimaryKeyHelper::normalizeKeyArray($this->logger, $config['primary_key']);
                 $config = DestinationRewriter::rewriteDestination($config, $this->clientWrapper);
-                $tableJob = $this->uploadTable($file->getPathname(), $config, $systemMetadata, $stagingStorageOutput);
+                $tableJob = $this->uploadTable($file->getPathname(), $config, $systemMetadata);
             } catch (ClientException $e) {
                 throw new InvalidOutputException(
                     "Cannot upload file '{$file->getFilename()}' to table '{$config["destination"]}' in Storage API: "
@@ -440,11 +443,10 @@ class TableWriter extends AbstractWriter
      * @param string $source
      * @param array $config
      * @param array $systemMetadata
-     * @param string $stagingStorageOutput
      * @return LoadTable
      * @throws ClientException
      */
-    private function uploadTable($source, array $config, array $systemMetadata, $stagingStorageOutput)
+    private function uploadTable($source, array $config, array $systemMetadata)
     {
         if (is_dir($source) && empty($config['columns'])) {
             throw new InvalidOutputException(
@@ -519,7 +521,7 @@ class TableWriter extends AbstractWriter
             'columns' => !empty($config['columns']) ? $config['columns'] : [],
             'incremental' => $config['incremental'],
         ];
-        $tableQueue = $this->loadDataIntoTable($source, $config['destination'], $loadOptions, $stagingStorageOutput);
+        $tableQueue = $this->loadDataIntoTable($source, $config['destination'], $loadOptions);
         $tableQueue->addMetadata(new MetadataDefinition(
             $this->clientWrapper->getBasicClient(),
             $config['destination'],
@@ -616,35 +618,35 @@ class TableWriter extends AbstractWriter
         return $this->getTableIdParts($tableId)[2];
     }
 
-    private function loadDataIntoTable($sourcePath, $tableId, array $options, $stagingStorageOutput)
+    private function loadDataIntoTable($sourcePath, $tableId, array $options)
     {
-        if ($stagingStorageOutput === StrategyFactory::LOCAL) {
+        if ($this->stagingStorageOutput === StrategyFactory::LOCAL) {
             if (is_dir($sourcePath)) {
                 $fileId = $this->uploadSlicedFile($sourcePath);
-                $options['dataFileId'] = $fileId;
-                $tableQueue = new LoadTable($this->clientWrapper->getBasicClient(), $tableId, $options);
             } else {
                 $fileId = $this->clientWrapper->getBasicClient()->uploadFile(
                     $sourcePath,
                     (new FileUploadOptions())->setCompress(true)
                 );
-                $options['dataFileId'] = $fileId;
-                $tableQueue = new LoadTable($this->clientWrapper->getBasicClient(), $tableId, $options);
             }
-        } else {
-            if ($stagingStorageOutput === StrategyFactory::WORKSPACE_ABS) {
-                $sourcePath = $this->specifySourceAbsPath($sourcePath);
-            }
-            $dataStorage = $this->strategy->getDataStorage();
-            $options = [
-                'dataWorkspaceId' => $dataStorage->getWorkspaceId(),
-                'dataObject' => $sourcePath,
-                'incremental' => $options['incremental'],
-                'columns' => $options['columns'],
-            ];
-            $tableQueue = new LoadTable($this->clientWrapper->getBasicClient(), $tableId, $options);
+
+            $options['dataFileId'] = $fileId;
+            return new LoadTable($this->clientWrapper->getBasicClient(), $tableId, $options);
         }
-        return $tableQueue;
+
+        if ($this->stagingStorageOutput === StrategyFactory::WORKSPACE_ABS) {
+            $sourcePath = $this->specifySourceAbsPath($sourcePath);
+        }
+
+        $dataStorage = $this->strategy->getDataStorage();
+        $options = [
+            'dataWorkspaceId' => $dataStorage->getWorkspaceId(),
+            'dataObject' => $sourcePath,
+            'incremental' => $options['incremental'],
+            'columns' => $options['columns'],
+        ];
+
+        return new LoadTable($this->clientWrapper->getBasicClient(), $tableId, $options);
     }
 
     private function specifySourceAbsPath($sourcePath)
