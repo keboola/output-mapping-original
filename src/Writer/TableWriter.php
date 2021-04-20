@@ -618,7 +618,6 @@ class TableWriter extends AbstractWriter
 
     private function loadDataIntoTable($sourcePath, $tableId, array $options, $stagingStorageOutput)
     {
-        $this->validateWorkspaceStaging($stagingStorageOutput);
         if ($stagingStorageOutput === StrategyFactory::LOCAL) {
             if (is_dir($sourcePath)) {
                 $fileId = $this->uploadSlicedFile($sourcePath);
@@ -682,27 +681,6 @@ class TableWriter extends AbstractWriter
     protected function ensureNoPathDelimiter($path)
     {
         return rtrim($path, '\\/');
-    }
-
-    /**
-     * @param string $stagingStorageOutput
-     * @throws InvalidOutputException if not local or valid workspace
-     */
-    private function validateWorkspaceStaging($stagingStorageOutput)
-    {
-        $stagingTypes = [
-            StrategyFactory::LOCAL,
-            StrategyFactory::WORKSPACE_SNOWFLAKE,
-            StrategyFactory::WORKSPACE_REDSHIFT,
-            StrategyFactory::WORKSPACE_SYNAPSE,
-            StrategyFactory::WORKSPACE_ABS,
-        ];
-        if (!in_array($stagingStorageOutput, $stagingTypes)) {
-            throw new InvalidOutputException(
-                'Parameter "storage" must be one of: ' .
-                implode(', ', $stagingTypes)
-            );
-        }
     }
 
     /**
