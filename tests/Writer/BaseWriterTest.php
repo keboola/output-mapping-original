@@ -28,6 +28,10 @@ abstract class BaseWriterTest extends \PHPUnit_Framework_TestCase
 
     protected function clearBuckets($buckets)
     {
+        if ($this->clientWrapper === null) {
+            return;
+        }
+
         foreach ($buckets as $bucket) {
             try {
                 $this->clientWrapper->getBasicClient()->dropBucket($bucket, ['force' => true]);
@@ -41,6 +45,10 @@ abstract class BaseWriterTest extends \PHPUnit_Framework_TestCase
 
     protected function clearFileUploads($tags)
     {
+        if ($this->clientWrapper === null) {
+            return;
+        }
+
         // Delete file uploads
         $options = new ListFilesOptions();
         $options->setTags($tags);
