@@ -694,7 +694,6 @@ class TableWriterV1 extends AbstractWriter
             StrategyFactory::WORKSPACE_REDSHIFT,
             StrategyFactory::WORKSPACE_SYNAPSE,
             StrategyFactory::WORKSPACE_ABS,
-            StrategyFactory::WORKSPACE_EXASOL,
         ];
         if (!in_array($stagingStorageOutput, $stagingTypes)) {
             throw new InvalidOutputException(
