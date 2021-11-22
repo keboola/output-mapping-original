@@ -10,8 +10,14 @@
          syntaxCheck="false"
          bootstrap="bootstrap.php">
 
-    <testsuite name="Test Suite">
+    <testsuite name="main">
         <directory>tests</directory>
+        <exclude>tests/Writer/SynapseWriterWorkspaceTest.php</exclude>
+        <exclude>tests/Writer/SynapseFixedTypesLocalTableWriterTest.php</exclude>
+    </testsuite>
+    <testsuite name="synapse">
+        <file>tests/Writer/SynapseWriterWorkspaceTest.php</file>
+        <file>tests/Writer/SynapseFixedTypesLocalTableWriterTest.php</file>
     </testsuite>
 
     <filter>
