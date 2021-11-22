@@ -45,3 +45,17 @@ jobs:
         RUN_SYNAPSE_TESTS: $(RUN_SYNAPSE_TESTS)
         SYNAPSE_STORAGE_API_URL: $(SYNAPSE_STORAGE_API_URL)
         SYNAPSE_STORAGE_API_TOKEN: $(SYNAPSE_STORAGE_API_TOKEN_PHP_74)
+
+  - job: tests_synapse
+    timeoutInMinutes: 120
+    displayName: 'Run tests specific for synapse backend'
+    steps:
+    - script: docker-compose build --pull tests74
+      displayName: 'Build Tests image'
+
+    - script: docker-compose run --rm tests74 vendor/bin/phpunit
+        displayName: 'Run Test Suite'
+        env:
+          RUN_SYNAPSE_TESTS: $(RUN_SYNAPSE_TESTS)
+          SYNAPSE_STORAGE_API_URL: $(SYNAPSE_STORAGE_API_URL)
+          SYNAPSE_STORAGE_API_TOKEN: $(SYNAPSE_STORAGE_API_TOKEN_PHP_74)

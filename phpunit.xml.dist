@@ -12,6 +12,12 @@
 
     <testsuite name="Test Suite">
         <directory>tests</directory>
+        <exclude>tests/Writer/SynapseWriterWorkspaceTest.php</exclude>
+        <exclude>tests/Writer/SynapseFixedTypesLocalTableWriterTest.php</exclude>
+    </testsuite>
+    <testsuite name="synapse">
+        <file>tests/Writer/SynapseWriterWorkspaceTest.php</file>
+        <file>tests/Writer/SynapseFixedTypesLocalTableWriterTest.php</file>
     </testsuite>
 
     <filter>
