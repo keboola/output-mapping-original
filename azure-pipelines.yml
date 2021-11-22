@@ -54,8 +54,8 @@ jobs:
       displayName: 'Build Tests image'
 
     - script: docker-compose run --rm tests74 vendor/bin/phpunit
-        displayName: 'Run Test Suite'
-        env:
-          RUN_SYNAPSE_TESTS: $(RUN_SYNAPSE_TESTS)
-          SYNAPSE_STORAGE_API_URL: $(SYNAPSE_STORAGE_API_URL)
-          SYNAPSE_STORAGE_API_TOKEN: $(SYNAPSE_STORAGE_API_TOKEN_PHP_74)
+      displayName: 'Run Test Suite'
+      env:
+        RUN_SYNAPSE_TESTS: $(RUN_SYNAPSE_TESTS)
+        SYNAPSE_STORAGE_API_URL: $(SYNAPSE_STORAGE_API_URL)
+        SYNAPSE_STORAGE_API_TOKEN: $(SYNAPSE_STORAGE_API_TOKEN_PHP_74)
